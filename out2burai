@@ -1,0 +1,7 @@
+#!/bin/bash
+
+a=` echo $1 | awk -F '[.]' '{print $1}'`
+
+sed -n '/&CONTROL/,/ATOMIC_POSITIONS {angstrom}/p' $a.in > $a-2.in
+
+sed -n '/Begin final coordinates/,/End final coordinates/p' $a.out | sed '1,3d' | sed '$d' >> $a-2.in

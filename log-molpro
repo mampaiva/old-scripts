@@ -1,0 +1,44 @@
+#!/bin/bash
+
+c=` echo $1 | awk -F '[.]' '{print $1}'`
+
+a=`grep -A 2 -m 1 " Current geometry (xyz format, in Angstrom)" $c.log | sed '1,2d'`
+a=$[$a+3]
+
+grep -A $a " Current geometry (xyz format, in Angstrom)" $c.log > $c-wx-log.dat
+
+sed -i '/ Current geometry (xyz format, in Angstrom)/d' $c-wx-log.dat
+sed -i '/--/d' $c-wx-log.dat
+sed -i '/^$/d' $c-wx-log.dat
+
+
+grep "  ENERGY=" $c-wx-log.dat | awk -F '[=]' '{print $2}' | nl  -s '     ' > $c-log-energy.dat
+
+b=`grep -m 1 "  ENERGY=" $c-wx-log.dat | awk -F '[=]' '{print $2}'`
+
+cat > $c-log.gpl << EOF
+set term postscript color enhanced "Helvetica" 20
+
+set pointsize 1.4 
+
+set ylabel "{/Helvetica-Bold=24 energy/kJ mol^{-1}}"
+set format x "%.1f"
+set format y "%.1f"
+Eh2kcmol =  627.509438586222
+Eh2kjmol =  2625.49961747733
+
+set xrange[*:*]
+set yrange[*:*]
+
+set output "$c-log.ps"
+set key at graph 0.95, graph 0.45 vertical maxrows 7
+set xlabel "Steps-of-interation"
+
+set label 1  "" at graph 0.16, graph 0.85
+plot   "$c-log-energy.dat" index 0 u 1:(\$2-$b)*Eh2kjmol w lp lw 4 pt 7 lc rgb "black" ti ""
+EOF
+
+
+wxmacmolplt $c-wx-log.dat &
+gnuplot $c-log.gpl &
+atril $c-log.ps &
